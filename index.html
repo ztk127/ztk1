@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ztk</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f13;
+    --card: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #7c6ef5;
+    --accent2: #a78bfa;
+    --text: #e2e2f0;
+    --muted: #6b6b8a;
+    --success: #34d399;
+    --error: #f87171;
+    --warn: #fbbf24;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  /* Header */
+  header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .logo { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header span { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .settings-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: border-color .2s; }
+  .settings-btn:hover { border-color: var(--accent); }
+
+  /* Layout */
+  .container { max-width: 960px; margin: 0 auto; padding: 24px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width: 640px) { .container { grid-template-columns: 1fr; } }
+
+  /* Cards */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .card h2 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 16px; }
+
+  /* Upload */
+  .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all .2s; position: relative; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(124,110,245,.06); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-zone p { color: var(--muted); font-size: 14px; }
+  .upload-zone strong { color: var(--accent2); }
+  .preview-img { width: 100%; border-radius: 10px; margin-top: 14px; max-height: 280px; object-fit: contain; display: none; }
+
+  /* Form */
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; margin-top: 14px; }
+  label:first-of-type { margin-top: 0; }
+  select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; transition: border-color .2s; }
+  select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+
+  /* Radio group */
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-group label { margin: 0; }
+  .radio-group input { display: none; }
+  .radio-btn { display: inline-block; padding: 6px 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--muted); transition: all .2s; }
+  .radio-group input:checked + .radio-btn { border-color: var(--accent); color: var(--accent2); background: rgba(124,110,245,.12); }
+
+  /* Generate button */
+  .gen-btn { width: 100%; margin-top: 20px; padding: 14px; background: linear-gradient(135deg, var(--accent), #6d58e8); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity .2s, transform .1s; }
+  .gen-btn:hover { opacity: .9; }
+  .gen-btn:active { transform: scale(.98); }
+  .gen-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Status */
+  .status-bar { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 13px; align-items: center; gap: 10px; }
+  .status-bar.show { display: flex; }
+  .status-bar.loading { background: rgba(124,110,245,.1); border: 1px solid rgba(124,110,245,.3); }
+  .status-bar.success { background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.3); }
+  .status-bar.error { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); }
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.2); border-top-color: var(--accent2); border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Progress */
+  .progress-wrap { margin-top: 10px; background: var(--bg); border-radius: 6px; height: 4px; overflow: hidden; display: none; }
+  .progress-wrap.show { display: block; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 6px; width: 0%; transition: width .4s ease; }
+
+  /* Result */
+  .result-wrap { display: none; }
+  .result-wrap.show { display: block; }
+  video { width: 100%; border-radius: 12px; background: #000; margin-bottom: 14px; max-height: 340px; }
+  .action-row { display: flex; gap: 10px; }
+  .dl-btn { flex: 1; padding: 10px; background: var(--success); border: none; border-radius: 10px; color: #000; font-weight: 600; font-size: 14px; cursor: pointer; transition: opacity .2s; }
+  .dl-btn:hover { opacity: .85; }
+  .again-btn { flex: 1; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; cursor: pointer; transition: border-color .2s; }
+  .again-btn:hover { border-color: var(--accent); }
+
+  /* History */
+  .history-wrap { grid-column: 1 / -1; }
+  .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .hist-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; cursor: pointer; transition: border-color .2s; }
+  .hist-item:hover { border-color: var(--accent); }
+  .hist-thumb { width: 100%; height: 100px; object-fit: cover; display: block; }
+  .hist-thumb-video { width: 100%; height: 100px; object-fit: cover; display: block; }
+  .hist-info { padding: 8px 10px; }
+  .hist-info p { font-size: 11px; color: var(--muted); }
+  .empty-history { color: var(--muted); font-size: 14px; text-align: center; padding: 20px; }
+
+  /* Settings modal */
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; }
+  .modal.show { display: flex; }
+  .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; width: 90%; max-width: 440px; }
+  .modal-box h3 { margin-bottom: 20px; }
+  input[type=text], input[type=password] { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; transition: border-color .2s; }
+  input[type=text]:focus, input[type=password]:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .save-btn { flex: 1; padding: 11px; background: var(--accent); border: none; border-radius: 10px; color: #fff; font-weight: 600; cursor: pointer; }
+  .cancel-btn { padding: 11px 18px; background: transparent; border: 1px solid var(--border); border-radius: 10px; color: var(--text); cursor: pointer; }
+  .tip { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .tip a { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🌊</div>
+  <h1>海螺图生视频</h1>
+  <span>MiniMax Hailuo API</span>
+  <button class="settings-btn" onclick="openSettings()">⚙️ 设置 API</button>
+</header>
+
+<div class="container">
+  <!-- Left: Upload + Config -->
+  <div class="card">
+    <h2>上传图片</h2>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" accept="image/jpeg,image/png,image/webp" onchange="handleFile(this)">
+      <div class="upload-icon">🖼️</div>
+      <p>点击或拖拽图片到此处</p>
+      <p><strong>支持 JPG / PNG / WEBP</strong>，建议 < 10MB</p>
+    </div>
+    <img class="preview-img" id="previewImg" alt="预览">
+
+    <h2 style="margin-top:20px">生成参数</h2>
+
+    <label>模型</label>
+    <select id="modelSelect">
+      <option value="MiniMax-Hailuo-2.3">Hailuo 2.3（最强效果，1080P）</option>
+      <option value="MiniMax-Hailuo-2.3-Fast">Hailuo 2.3 Fast（速度快，成本低50%）</option>
+      <option value="I2V-01-live">I2V-01-live（动漫/插画专用）</option>
+    </select>
+
+    <label>时长</label>
+    <div class="radio-group">
+      <label><input type="radio" name="dur" value="6" checked><span class="radio-btn">6 秒</span></label>
+      <label><input type="radio" name="dur" value="10"><span class="radio-btn">10 秒</span></label>
+    </div>
+
+    <label>分辨率</label>
+    <div class="radio-group">
+      <label><input type="radio" name="res" value="1080P" checked><span class="radio-btn">1080P</span></label>
+      <label><input type="radio" name="res" value="768P"><span class="radio-btn">768P</span></label>
+    </div>
+
+    <label>运动描述（可选，英文效果更好）</label>
+    <textarea id="prompt" placeholder="例如：The camera slowly zooms in, petals fall gently in the breeze"></textarea>
+
+    <button class="gen-btn" id="genBtn" onclick="generate()">✨ 一键生成视频</button>
+
+    <div class="status-bar" id="statusBar">
+      <div class="spinner" id="spinner"></div>
+      <span id="statusText">准备中...</span>
+    </div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- Right: Result -->
+  <div class="card">
+    <h2>生成结果</h2>
+    <div id="resultEmpty" style="color:var(--muted);font-size:14px;padding:40px 0;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">🎬</div>
+      <p>上传图片后点击生成</p>
+      <p style="margin-top:6px;font-size:12px">生成约需 30-90 秒</p>
+    </div>
+    <div class="result-wrap" id="resultWrap">
+      <video id="resultVideo" controls loop autoplay muted></video>
+      <div class="action-row">
+        <button class="dl-btn" onclick="downloadVideo()">⬇️ 下载视频</button>
+        <button class="again-btn" onclick="resetResult()">🔄 重新生成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card history-wrap">
+    <h2>生成历史 <span style="font-size:11px;color:var(--muted);font-weight:400">（本地保存，关闭页面后清除）</span></h2>
+    <div class="history-grid" id="historyGrid">
+      <div class="empty-history">暂无历史记录</div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal" id="settingsModal">
+  <div class="modal-box">
+    <h3>⚙️ API 配置</h3>
+    <label>MiniMax API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="输入你的 API Key（sk-...）">
+    <p class="tip">前往 <a href="https://platform.minimaxi.com" target="_blank">platform.minimaxi.com</a> 注册并获取 API Key。Key 只保存在浏览器本地，不会上传任何服务器。</p>
+
+    <label style="margin-top:16px">Cloudflare Worker 代理地址</label>
+    <input type="text" id="proxyInput" placeholder="https://your-worker.workers.dev">
+    <p class="tip">
+      由于浏览器跨域限制，需要一个免费代理中转。<br>
+      👉 <a href="https://github.com/your-repo#deploy-worker" target="_blank">查看 Worker 部署教程（5分钟）</a><br>
+      或者直接在本地用 VS Code + Live Server 测试时可留空（需浏览器关闭跨域）。
+    </p>
+
+    <div class="modal-actions">
+      <button class="cancel-btn" onclick="closeSettings()">取消</button>
+      <button class="save-btn" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== State ====================
+let imageBase64 = null;
+let currentVideoUrl = null;
+let pollTimer = null;
+let history = [];
+
+// ==================== Settings ====================
+function openSettings() {
+  document.getElementById('apiKeyInput').value = localStorage.getItem('mm_api_key') || '';
+      document.getElementById('proxyInput').value = localStorage.getItem('mm_proxy') || 'https://curly-scene-bc12.wc12721wc.workers.dev';
+  document.getElementById('settingsModal').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+function saveSettings() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  const proxy = document.getElementById('proxyInput').value.trim();
+  if (key) localStorage.setItem('mm_api_key', key);
+  if (proxy) localStorage.setItem('mm_proxy', proxy);
+  closeSettings();
+  showStatus('success', '✅ 设置已保存');
+}
+
+// ==================== Upload ====================
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) processFile(f);
+});
+
+function handleFile(input) {
+  if (input.files[0]) processFile(input.files[0]);
+}
+
+function processFile(file) {
+  if (file.size > 10 * 1024 * 1024) { showStatus('error', '图片大小不能超过 10MB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    imageBase64 = e.target.result; // data:image/xxx;base64,...
+    const img = document.getElementById('previewImg');
+    img.src = imageBase64;
+    img.style.display = 'block';
+    hideStatus();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ==================== Generate ====================
+async function generate() {
+  const apiKey = localStorage.getItem('mm_api_key');
+  const proxy = localStorage.getItem('mm_proxy');
+
+  if (!apiKey) { openSettings(); return; }
+  if (!imageBase64) { showStatus('error', '❌ 请先上传图片'); return; }
+
+  const model = document.getElementById('modelSelect').value;
+  const duration = parseInt(document.querySelector('input[name=dur]:checked').value);
+  const resolution = document.querySelector('input[name=res]:checked').value;
+  const prompt = document.getElementById('prompt').value.trim() || 'Smooth natural motion';
+
+  // Hailuo 2.3 only supports 6s, fix if needed
+  const finalDuration = (model === 'I2V-01-live') ? 6 : duration;
+
+  setLoading(true);
+  showStatus('loading', '📤 提交任务中...');
+  setProgress(10);
+
+  try {
+    // Step 1: Submit
+    const base = proxy || 'https://api.minimax.io';
+    const submitRes = await fetch(`${base}/v1/video_generation`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model,
+        prompt,
+        first_frame_image: imageBase64,
+        duration: finalDuration,
+        resolution
+      })
+    });
+
+    const submitData = await submitRes.json();
+    if (!submitData.task_id) throw new Error(submitData.base_resp?.status_msg || '提交失败，请检查 API Key');
+
+    const taskId = submitData.task_id;
+    showStatus('loading', `⏳ 任务已提交，生成中... (task: ${taskId.slice(-8)})`);
+    setProgress(25);
+
+    // Step 2: Poll
+    await pollTask(taskId, apiKey, base);
+
+  } catch (err) {
+    showStatus('error', `❌ ${err.message}`);
+    setLoading(false);
+    setProgress(0);
+  }
+}
+
+async function pollTask(taskId, apiKey, base) {
+  let attempts = 0;
+  const maxAttempts = 60; // 3min max
+
+  const poll = async () => {
+    attempts++;
+    const pct = Math.min(25 + attempts * 1.2, 90);
+    setProgress(pct);
+
+    try {
+      const r = await fetch(`${base}/v1/query/video_generation?task_id=${taskId}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const data = await r.json();
+      const status = data.status;
+
+      if (status === 'Success') {
+        setProgress(95);
+        showStatus('loading', '📥 获取视频文件...');
+        const fileId = data.file_id;
+        await retrieveFile(fileId, apiKey, base);
+      } else if (status === 'Fail') {
+        throw new Error('视频生成失败，请重试');
+      } else {
+        // Still running
+        const msg = status === 'Preparing' ? '🔄 模型准备中...' : '🎬 视频渲染中...';
+        showStatus('loading', `${msg} (${attempts * 3}s)`);
+        if (attempts < maxAttempts) {
+          pollTimer = setTimeout(poll, 3000);
+        } else {
+          throw new Error('生成超时，请重试');
+        }
+      }
+    } catch (err) {
+      showStatus('error', `❌ ${err.message}`);
+      setLoading(false);
+      setProgress(0);
+    }
+  };
+
+  pollTimer = setTimeout(poll, 3000);
+}
+
+async function retrieveFile(fileId, apiKey, base) {
+  const r = await fetch(`${base}/v1/files/retrieve?file_id=${fileId}`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` }
+  });
+  const data = await r.json();
+  const url = data.file?.download_url;
+  if (!url) throw new Error('获取视频链接失败');
+
+  currentVideoUrl = url;
+  setProgress(100);
+  showResult(url);
+  addHistory(url);
+  setLoading(false);
+  showStatus('success', '✅ 视频生成成功！（链接9小时内有效，请及时下载）');
+}
+
+// ==================== Result ====================
+function showResult(url) {
+  document.getElementById('resultEmpty').style.display = 'none';
+  const wrap = document.getElementById('resultWrap');
+  wrap.classList.add('show');
+  const v = document.getElementById('resultVideo');
+  v.src = url;
+  v.play().catch(() => {});
+}
+
+function resetResult() {
+  document.getElementById('resultEmpty').style.display = 'block';
+  document.getElementById('resultWrap').classList.remove('show');
+  document.getElementById('resultVideo').src = '';
+  currentVideoUrl = null;
+  hideStatus();
+  setProgress(0);
+}
+
+async function downloadVideo() {
+  if (!currentVideoUrl) return;
+  try {
+    const a = document.createElement('a');
+    a.href = currentVideoUrl;
+    a.download = `hailuo_${Date.now()}.mp4`;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch { window.open(currentVideoUrl, '_blank'); }
+}
+
+// ==================== History ====================
+function addHistory(url) {
+  history.unshift({ url, time: new Date().toLocaleTimeString(), img: imageBase64 });
+  if (history.length > 12) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const grid = document.getElementById('historyGrid');
+  if (history.length === 0) {
+    grid.innerHTML = '<div class="empty-history">暂无历史记录</div>';
+    return;
+  }
+  grid.innerHTML = history.map((h, i) => `
+    <div class="hist-item" onclick="playHistory(${i})">
+      <img class="hist-thumb" src="${h.img}" alt="缩略图">
+      <div class="hist-info">
+        <p>🎬 ${h.time}</p>
+        <p style="color:var(--accent2);margin-top:2px">▶ 点击播放</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+function playHistory(i) {
+  const h = history[i];
+  currentVideoUrl = h.url;
+  showResult(h.url);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==================== UI Helpers ====================
+function setLoading(on) {
+  document.getElementById('genBtn').disabled = on;
+  document.getElementById('genBtn').textContent = on ? '⏳ 生成中...' : '✨ 一键生成视频';
+}
+
+function showStatus(type, msg) {
+  const bar = document.getElementById('statusBar');
+  bar.className = `status-bar show ${type}`;
+  document.getElementById('statusText').textContent = msg;
+  document.getElementById('spinner').style.display = type === 'loading' ? 'block' : 'none';
+}
+
+function hideStatus() {
+  document.getElementById('statusBar').className = 'status-bar';
+}
+
+function setProgress(pct) {
+  const wrap = document.getElementById('progressWrap');
+  wrap.classList.toggle('show', pct > 0 && pct < 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// Init
+renderHistory();
+if (!localStorage.getItem('mm_api_key')) {
+  setTimeout(() => showStatus('loading', '👆 请先点击右上角「设置 API」填写 API Key'), 500);
+}
+</script>
+</body>
+</html>
